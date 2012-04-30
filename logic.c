@@ -63,6 +63,9 @@ void sendAircraftPacket() {
 	}
 }
 
+// attempt to record start time
+struct timeb t_start;
+
 float sendRequestedDataCallback(
                                    float	inElapsedSinceLastCall,
                                    float	inElapsedTimeSinceLastFlightLoop,
@@ -80,21 +83,36 @@ float sendRequestedDataCallback(
 	XPLMDebugString("XData: sendRequestedDataCallback called.\n");
 
 	if (xdata_plugin_enabled && xdata_send_enabled && xdata_socket_open) {
-		//XPLMDebugString("XData: Hi ho!...\n");
 	
-		struct timeb t;           // system structure for storing time
-		ftime(&t);                // get time stamp	
-		int currentTime = (int)((1000.0 * t.time) + t.millitm);
+		// Tried a number of things, but absolute current time in millis just overflows and isn't printable via sprintf, it seems, as a long long.
+		// So: initializing a start time, then evaluating time since that, which fits into an int.
+		if( t_start.time == 0 ) {
+			ftime(&t_start);
+			XPLMDebugString("Initialising t_start.\n");
+		}
+
+
+		struct timeb t_current;
+		ftime(&t_current);
+		int t_diff = (int) (1000.0 * (t_current.time - t_start.time) + (t_current.millitm - t_start.millitm));
+		
+//		sprintf(msg, "Time check: milliseconds since start = %d\n", t_diff);
+//		XPLMDebugString(msg);
+		
+		
 		// work out which requests to send
 		for( i=0; i<=max_requested_index; i++ ) {
 			rr = request_records[i];
 			if( rr.enabled ) {
-				if( rr.time_next_send == 0 || currentTime > rr.time_next_send ) {
+				//sprintf(msg, "%d - Checking %s which is scheduled for %d\n", t_diff, rr.dataref_name, rr.time_next_send);
+				//XPLMDebugString(msg);
+				if( rr.time_next_send == 0 || t_diff > rr.time_next_send ) {
 					// send it
-					sprintf(msg, "%d - Would send %s\n", currentTime, rr.dataref_name);
-					XPLMDebugString(msg);
+
 					// schedule next time
-					rr.time_next_send = currentTime + rr.every_millis;
+					request_records[i].time_next_send = t_diff + rr.every_millis;
+					sprintf(msg, "%d - Would send %s and rescheduled (every %d millis) for %d\n", t_diff, rr.dataref_name, rr.every_millis, rr.time_next_send);
+					XPLMDebugString(msg);
 				}
 			}
 		}
@@ -102,6 +120,15 @@ float sendRequestedDataCallback(
 	long		time_last_sent;
 	long 		every_millis;
 	long		time_next_send;
+	
+	
+every 100 ms, create a buffer (well, reuse it for performance) and start populating it with eligible data.  Keep going until the next ref would overflow the buffer.
+ send the packet, then resume from the current ref.  until there are no more eligible refs.  send that last packet, if there's something in it.
+ upon adding the data to the packet, update the struct with the calculated next send time.
+ 
+REQD|COUNT|ID|DATATYPE|LENGTH|DATA.....................................|(repeated ID, TYPE, LEN, DATA)..
+
+	
 */	
 	
 /*

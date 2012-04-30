@@ -21,3 +21,8 @@ Send updates to X-Plane so that you can change values in the simulator from outs
 Implement a Java library that will interface with XData, so you can effectively interact with XPlane without knowing any C code.
 
 Write a java application that uses XData.
+
+
+Credits
+=======
+XData is heavily based on the source code from the XHSI project (http://xhsi.sourceforge.net/)
