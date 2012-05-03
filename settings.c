@@ -25,16 +25,6 @@ unsigned short int  recv_port;
 unsigned long int   recv_rate;
 float               recv_delay;
 
-unsigned long int   adc_data_rate;
-unsigned long int   fms_data_rate;
-unsigned long int   tcas_data_rate;
-float               adc_data_delay;
-float               avionics_data_delay;
-float               engines_data_delay;
-float               static_data_delay;
-float               fms_data_delay;
-float               tcas_data_delay;
-
 
 
 // Config settings ---------------------------------------------------------------------------
@@ -51,17 +41,6 @@ void defaultSettings() {
 	recv_port = DEFAULT_RECV_PORT;
 	recv_rate = 10;
 	recv_delay = 1.0f / (float)recv_rate;
-
-	adc_data_rate = 15;
-	adc_data_delay = 1.0f / (float)adc_data_rate;
-	avionics_data_delay = adc_data_delay * 3.0f;
-	engines_data_delay = adc_data_delay * 5.0f;
-	static_data_delay = adc_data_delay * 15.0f;
-	fms_data_rate = 2;
-	fms_data_delay = 1.0f / (float)fms_data_rate;
-	tcas_data_rate = 5;
-	tcas_data_delay = 1.0f / (float)tcas_data_rate;
-
 }
 
 
@@ -96,23 +75,6 @@ void readConfig() {
 			if (strcmp(param, "recv_rate")==0) {
 				recv_rate = d_value;
 				recv_delay = 1.0f / (float)recv_rate;
-			}
-
-			if (strcmp(param, "adc_data_rate")==0) {
-				adc_data_rate = d_value;
-				adc_data_delay = 1.0f / (float)adc_data_rate;
-                avionics_data_delay = adc_data_delay * 3.0f;
-                engines_data_delay = adc_data_delay * 5.0f;
-			}
-
-			if (strcmp(param, "fms_data_rate")==0) {
-				fms_data_rate = d_value;
-				fms_data_delay = 1.0f / (float)fms_data_rate;
-			}
-
-			if (strcmp(param, "tcas_data_rate")==0) {
-				tcas_data_rate = d_value;
-				tcas_data_delay = 1.0f / (float)tcas_data_rate;
 			}
 
 			for (i=0; i<NUM_DEST; i++) {
@@ -164,10 +126,6 @@ void writeSettings() {
 
 		fprintf(cfg_file, "recv_port %d\n", recv_port);
 		fprintf(cfg_file, "recv_rate %ld\n", recv_rate);
-
-		fprintf(cfg_file, "adc_data_rate %ld\n", adc_data_rate);
-		fprintf(cfg_file, "fms_data_rate %ld\n", fms_data_rate);
-		fprintf(cfg_file, "tcas_data_rate %ld\n", tcas_data_rate);
 
 		for (i=0; i<NUM_DEST; i++) {
 			fprintf(cfg_file, "dest_enable[%d] %d\n", i, dest_enable[i]);

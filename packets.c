@@ -74,87 +74,82 @@ void decodeRequestPacket(void) {
 	for (i=0; i<nb; i++) {
 	    id = custom_ntohl(req_packet.requests[i].ref_id);
         frequency = custom_ntohf(req_packet.requests[i].frequency);
-		strncpy(dataref_name, req_packet.requests[i].dataref_name, 80);
-        //writeDataRef(id, float_value);
 		
-		sprintf(debug_message, "    index %d   id %d   frequency %f   dataref_name %s\n", i, id, frequency, dataref_name);
-		XPLMDebugString(debug_message);	
-		
-		if( id > max_requested_index ) {
-			max_requested_index = id;
-		}
-		strncpy(request_records[id].dataref_name, dataref_name, 80);
-		request_records[id].dataref = XPLMFindDataRef(dataref_name);
-		request_records[id].datatype = XPLMGetDataRefTypes(request_records[id].dataref);
-		request_records[id].every_millis = (int)(1000.0f / frequency);
-		request_records[id].time_last_sent = 0;
-		request_records[id].time_next_send = 0;
-		request_records[id].enabled = 1;
-		
-		if( request_records[id].dataref != NULL ) {
-			if( request_records[id].datatype == xplmType_Int ) {
-				int value = XPLMGetDatai(request_records[id].dataref);
-				sprintf(debug_message, "   dataref_name %s   int value %d\n", request_records[id].dataref_name, value);
-				XPLMDebugString(debug_message);	
-			} else
-			if( request_records[id].datatype == xplmType_Float ) {
-				float value = XPLMGetDataf(request_records[id].dataref);
-				sprintf(debug_message, "   dataref_name %s   float value %f\n", request_records[id].dataref_name, value);
-				XPLMDebugString(debug_message);	
-			} else
-			if( request_records[id].datatype == xplmType_Double || request_records[id].datatype == 6 ) {  // hack based on observed values
-				double value = XPLMGetDatad(request_records[id].dataref);
-				sprintf(debug_message, "   dataref_name %s   double value %f\n", request_records[id].dataref_name, value);
-				XPLMDebugString(debug_message);	
-			} else			
-			if( request_records[id].datatype == xplmType_FloatArray ) {
-				float values[20];
-				long size = XPLMGetDatavf(request_records[id].dataref, values, 0, 20);
-
-				sprintf(debug_message, "   dataref_name %s   float values: ", request_records[id].dataref_name);
-				XPLMDebugString(debug_message);	
-				int x;
-				for( x=0;x<size;x++ ) {
-					sprintf(debug_message, "%f ", values[x]);
-					XPLMDebugString(debug_message);	
-				}
-				XPLMDebugString("\n");	
-			} else
-			if( request_records[id].datatype == xplmType_IntArray ) {
-				int values[20];
-				long size = XPLMGetDatavi(request_records[id].dataref, values, 0, 20);
-
-				sprintf(debug_message, "   dataref_name %s   int values: ", request_records[id].dataref_name);
-				XPLMDebugString(debug_message);	
-				int x;
-				for( x=0;x<size;x++ ) {
-					sprintf(debug_message, "%d ", values[x]);
-					XPLMDebugString(debug_message);	
-				}
-				XPLMDebugString("\n");	
-			} else
-			if( request_records[id].datatype == xplmType_Data ) {
-				char value[1024];
-				long num_bytes = XPLMGetDatab(request_records[id].dataref, value, 0, 1024);
-				sprintf(debug_message, "   dataref_name %s   bytes value %s\n", request_records[id].dataref_name, value);
-				XPLMDebugString(debug_message);	
+		if( frequency == 0.0f ) {
+			request_records[id].enabled = 0;
+		} else {
+			strncpy(dataref_name, req_packet.requests[i].dataref_name, 80);
+			//writeDataRef(id, float_value);
+			
+			sprintf(debug_message, "    index %d   id %d   frequency %f   dataref_name %s\n", i, id, frequency, dataref_name);
+			XPLMDebugString(debug_message);	
+			
+			if( id > max_requested_index ) {
+				max_requested_index = id;
 			}
-		}
-		
-		
-		
-		sprintf(debug_message, "  ->  id %d   dataref_name %s   every_millis %d   datatype %d\n", id, request_records[id].dataref_name, request_records[id].every_millis, request_records[id].datatype);
-		XPLMDebugString(debug_message);	
-		
+			strncpy(request_records[id].dataref_name, dataref_name, 80);
+			request_records[id].dataref = XPLMFindDataRef(dataref_name);
+			request_records[id].datatype = XPLMGetDataRefTypes(request_records[id].dataref);
+			request_records[id].every_millis = (int)(1000.0f / frequency);
+			request_records[id].time_last_sent = 0;
+			request_records[id].time_next_send = 0;
+			request_records[id].enabled = 1;
+			
+			if( request_records[id].dataref != NULL ) {
+				if( request_records[id].datatype == xplmType_Int ) {
+					int value = XPLMGetDatai(request_records[id].dataref);
+					sprintf(debug_message, "   dataref_name %s   int value %d\n", request_records[id].dataref_name, value);
+					XPLMDebugString(debug_message);	
+				} else
+				if( request_records[id].datatype == xplmType_Float ) {
+					float value = XPLMGetDataf(request_records[id].dataref);
+					sprintf(debug_message, "   dataref_name %s   float value %f\n", request_records[id].dataref_name, value);
+					XPLMDebugString(debug_message);	
+				} else
+				if( request_records[id].datatype == xplmType_Double || request_records[id].datatype == 6 ) {  // hack based on observed values
+					double value = XPLMGetDatad(request_records[id].dataref);
+					sprintf(debug_message, "   dataref_name %s   double value %f\n", request_records[id].dataref_name, value);
+					XPLMDebugString(debug_message);	
+				} else			
+				if( request_records[id].datatype == xplmType_FloatArray ) {
+					float values[20];
+					long size = XPLMGetDatavf(request_records[id].dataref, values, 0, 20);
 
-/*
-	int			enabled;
-	XPLMDataRef dataref;
-	char		dataref_name[80];
-	long		time_last_sent;
-	long 		every_millis;
-	long		time_next_send;
-*/			
+					sprintf(debug_message, "   dataref_name %s   float values: ", request_records[id].dataref_name);
+					XPLMDebugString(debug_message);	
+					int x;
+					for( x=0;x<size;x++ ) {
+						sprintf(debug_message, "%f ", values[x]);
+						XPLMDebugString(debug_message);	
+					}
+					XPLMDebugString("\n");	
+				} else
+				if( request_records[id].datatype == xplmType_IntArray ) {
+					int values[20];
+					long size = XPLMGetDatavi(request_records[id].dataref, values, 0, 20);
+
+					sprintf(debug_message, "   dataref_name %s   int values: ", request_records[id].dataref_name);
+					XPLMDebugString(debug_message);	
+					int x;
+					for( x=0;x<size;x++ ) {
+						sprintf(debug_message, "%d ", values[x]);
+						XPLMDebugString(debug_message);	
+					}
+					XPLMDebugString("\n");	
+				} else
+				if( request_records[id].datatype == xplmType_Data ) {
+					char value[1024];
+					long num_bytes = XPLMGetDatab(request_records[id].dataref, value, 0, 1024);
+					sprintf(debug_message, "   dataref_name %s   bytes value %s\n", request_records[id].dataref_name, value);
+					XPLMDebugString(debug_message);	
+				}
+			}
+			
+			
+			
+			sprintf(debug_message, "  ->  id %d   dataref_name %s   every_millis %d   datatype %d\n", id, request_records[id].dataref_name, request_records[id].every_millis, request_records[id].datatype);
+			XPLMDebugString(debug_message);	
+		}
 			
 	}
 

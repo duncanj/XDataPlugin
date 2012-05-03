@@ -66,6 +66,12 @@ void sendAircraftPacket() {
 // attempt to record start time
 struct timeb t_start;
 
+enum {response_max_size=1000};  // http://compgroups.net/comp.lang.c/explanation-needed-for-const-int-error-variably-m/284354
+
+char response_data[response_max_size];
+int response_index;
+int number_of_points;
+
 float sendRequestedDataCallback(
                                    float	inElapsedSinceLastCall,
                                    float	inElapsedTimeSinceLastFlightLoop,
@@ -73,14 +79,15 @@ float sendRequestedDataCallback(
                                    void *	inRefcon) {
 
 	int i;
-	int packet_size;
 	int res;
 #if IBM
 	char msg[80];
 #endif
 	struct RequestRecord rr;
 
-	XPLMDebugString("XData: sendRequestedDataCallback called.\n");
+	if( DEBUG ) {
+		XPLMDebugString("XData: sendRequestedDataCallback called.\n");
+	}
 
 	if (xdata_plugin_enabled && xdata_send_enabled && xdata_socket_open) {
 	
@@ -96,26 +103,233 @@ float sendRequestedDataCallback(
 		ftime(&t_current);
 		int t_diff = (int) (1000.0 * (t_current.time - t_start.time) + (t_current.millitm - t_start.millitm));
 		
+		// clear the buffer
+		memset(response_data, 0, response_max_size);
+		
 //		sprintf(msg, "Time check: milliseconds since start = %d\n", t_diff);
 //		XPLMDebugString(msg);
-		
+				
+		strncpy(response_data, "REQD", 4);		// first 4 bytes indicate packet type
+		response_index = 8;
+		number_of_points = 0;
 		
 		// work out which requests to send
 		for( i=0; i<=max_requested_index; i++ ) {
 			rr = request_records[i];
-			if( rr.enabled ) {
+			if( rr.enabled && request_records[i].dataref != NULL ) {
 				//sprintf(msg, "%d - Checking %s which is scheduled for %d\n", t_diff, rr.dataref_name, rr.time_next_send);
 				//XPLMDebugString(msg);
 				if( rr.time_next_send == 0 || t_diff > rr.time_next_send ) {
-					// send it
+					
+					// let's work out the size of the data
+					int size = 0;
+					
+					int nbrArrayValues = 0;
+					
+					int intValue = 0;
+					float floatValue = 0.0f;
+					double doubleValue = 0.0;
+					int intArrayValues[20];
+					float floatArrayValues[20];
+					char data[900];
+					
+					if( request_records[i].datatype == xplmType_Int ) {
+						intValue = XPLMGetDatai(request_records[i].dataref);
+						size = 4;
+					} else
+					if( request_records[i].datatype == xplmType_Float ) {
+						floatValue = XPLMGetDataf(request_records[i].dataref);
+						size = 4;
+					} else
+					if( request_records[i].datatype == xplmType_Double || request_records[i].datatype == 6 ) {  // hack based on observed values
+						doubleValue = XPLMGetDatad(request_records[i].dataref);
+						size = 8;
+					} else			
+					if( request_records[i].datatype == xplmType_FloatArray ) {
+						nbrArrayValues = XPLMGetDatavf(request_records[i].dataref, floatArrayValues, 0, 20);
+						size = (4 * nbrArrayValues);
+					} else
+					if( request_records[i].datatype == xplmType_IntArray ) {
+						nbrArrayValues = XPLMGetDatavi(request_records[i].dataref, intArrayValues, 0, 20);
+						size = (4 * nbrArrayValues);
+					} else
+					if( request_records[i].datatype == xplmType_Data ) {
+						nbrArrayValues = XPLMGetDatab(request_records[i].dataref, data, 0, 900);
+						size = nbrArrayValues;
+					}
+				
+					
+					// will it fit in the buffer
+					int index_after_add = response_index + 4 + 4 + 4 + size;
+					if( index_after_add >= response_max_size ) {
+						// if not, send it
+						// first update response with number of points
+						int convertedNum = custom_htonl(number_of_points);
+						memcpy(response_data+4, &convertedNum, 4);
+						
+						if( DEBUG ) {
+							sprintf(msg, "Packet ready to go: number_of_points=%d response_index=%d\n", number_of_points, response_index);
+							XPLMDebugString(msg);
+							XPLMDebugString("Packet data: ");
+							int p=0;
+							for( p=0; p<response_index; p++ ) {
+								sprintf(msg, "%d:%d ", p, (int)response_data[p]);
+								XPLMDebugString(msg);
+							}
+							XPLMDebugString("\n");
+						}
+						
+						// ready to go	
+						for (i=0; i<NUM_DEST; i++) {
+							if (dest_enable[i]) {
+								res = sendto(sockfd, response_data, response_index, 0, (struct sockaddr *)&dest_sockaddr[i], sizeof(struct sockaddr));
+				#if IBM
+								if ( res == SOCKET_ERROR ) {
+									XPLMDebugString("XData: caught error while sending REQD packet! (");
+									sprintf(msg, "%d", WSAGetLastError());
+									XPLMDebugString(msg);
+									XPLMDebugString(")\n");
+								}
+				#else
+								if ( res < 0 ) {
+									XPLMDebugString("XData: caught error while sending REQD packet! (");
+									XPLMDebugString((char * const) strerror(GET_ERRNO));
+									XPLMDebugString(")\n");
+								}
+				#endif
+							}
+						}
+						
+						XPLMDebugString("Sent packet\n");						
+						response_index = 8;
+						number_of_points = 0;
+						
+					} else {			
+						// otherwise add it to the buffer
+						
+						// TODO figure out how to either convert each of the above datatypes into char[] data, or
+						// simply memcpy from the original dataref into the buffer.
+						
+						// ID|DATATYPE|LENGTH|DATA....
+						int convertedI = custom_htonl(i);
+						memcpy(response_data+response_index, &convertedI, 4);
+						response_index += 4;
+						
+						int convertedDatatype = custom_htonl(request_records[i].datatype);
+						memcpy(response_data+response_index, &convertedDatatype, 4);
+						response_index += 4;
+						
+						int convertedSize = custom_htonl(size);
+						memcpy(response_data+response_index, &convertedSize, 4);
+						response_index += 4;
+
+						if( request_records[i].datatype == xplmType_Int ) {
+							int convertedInt = custom_htonl(intValue);
+							memcpy(response_data+response_index, &convertedInt, 4);
+							response_index += 4;
+						} else
+						if( request_records[i].datatype == xplmType_Float ) {
+							int convertedFloat = custom_htonf(floatValue);
+							memcpy(response_data+response_index, &convertedFloat, 4);
+							response_index += 4;
+						} else
+						if( request_records[i].datatype == xplmType_Double || request_records[i].datatype == 6 ) {  // hack based on observed values
+						
+							// Now this is weird.  Converting the double breaks it somehow.  Even reversing the byte order at the receiving
+							// end doesn't work..
+							//double convertedDouble = custom_htond(doubleValue);
+							memcpy(response_data+response_index, &doubleValue, 8);
+							response_index += 8;
+						} else			
+						if( request_records[i].datatype == xplmType_FloatArray ) {
+							int d = 0;
+							for( d = 0; d<nbrArrayValues; d++ ) {
+								float convertedFloat = custom_htonf(floatArrayValues[d]);
+								memcpy(response_data+response_index, &convertedFloat, 4);
+								response_index += 4;
+							}
+						} else
+						if( request_records[i].datatype == xplmType_IntArray ) {
+							int d = 0;
+							for( d = 0; d<nbrArrayValues; d++ ) {
+								int convertedInt = custom_htonl(intArrayValues[d]);
+								memcpy(response_data+response_index, &convertedInt, 4);
+								response_index += 4;
+							}
+						} else
+						if( request_records[i].datatype == xplmType_Data ) {
+							memcpy(response_data+response_index, &data, size);
+							response_index += size;
+						}
+						
+						
+						
+						
+						
+						response_index = index_after_add;
+						number_of_points++;	
+						
+						if( DEBUG ) {
+							sprintf(msg, "Packet accumulating: number_of_points=%d response_index=%d\n", number_of_points, response_index);
+							XPLMDebugString(msg);						
+						}
+						
+					}
 
 					// schedule next time
 					request_records[i].time_next_send = t_diff + rr.every_millis;
-					sprintf(msg, "%d - Would send %s and rescheduled (every %d millis) for %d\n", t_diff, rr.dataref_name, rr.every_millis, rr.time_next_send);
-					XPLMDebugString(msg);
+//					sprintf(msg, "%d - Would send %s and rescheduled (every %d millis) for %d\n", t_diff, rr.dataref_name, rr.every_millis, rr.time_next_send);
+//					XPLMDebugString(msg);
 				}
 			}
 		}
+		
+		// does the buffer contain any data?
+		if( number_of_points > 0 ) {
+			// send it
+			
+			// first update response with number of points
+			int convertedNum = custom_htonl(number_of_points);
+			memcpy(response_data+4, &convertedNum, 4);
+			
+			if( DEBUG ) {
+				sprintf(msg, "Packet ready to go: number_of_points=%d response_index=%d\n", number_of_points, response_index);
+				XPLMDebugString(msg);
+				XPLMDebugString("Packet data: ");
+				int p=0;
+				for( p=0; p<response_index; p++ ) {
+					sprintf(msg, "%d:%d ", p, (int)response_data[p]);
+					XPLMDebugString(msg);
+				}
+				XPLMDebugString("\n");
+			}
+			
+			// ready to go		
+			for (i=0; i<NUM_DEST; i++) {
+				if (dest_enable[i]) {
+					res = sendto(sockfd, response_data, response_index, 0, (struct sockaddr *)&dest_sockaddr[i], sizeof(struct sockaddr));
+	#if IBM
+					if ( res == SOCKET_ERROR ) {
+						XPLMDebugString("XData: caught error while sending REQD packet! (");
+						sprintf(msg, "%d", WSAGetLastError());
+						XPLMDebugString(msg);
+						XPLMDebugString(")\n");
+					}
+	#else
+					if ( res < 0 ) {
+						XPLMDebugString("XData: caught error while sending REQD packet! (");
+						XPLMDebugString((char * const) strerror(GET_ERRNO));
+						XPLMDebugString(")\n");
+					}
+	#endif
+				}
+			}
+			
+			if( DEBUG ) {
+				XPLMDebugString("Sent packet.\n");				
+			}
+		}
+		
 /*
 	long		time_last_sent;
 	long 		every_millis;
@@ -154,7 +368,7 @@ REQD|COUNT|ID|DATATYPE|LENGTH|DATA.....................................|(repeate
 			}
 		}
 */
-		return situation_update_period;
+		return 0.1;
 
 	} else {
 
@@ -180,7 +394,7 @@ REQD|COUNT|ID|DATATYPE|LENGTH|DATA.....................................|(repeate
 			XPLMDebugString("false\n");
 		}
 	
-		return 1.0f;
+		return 0.1f;
 	}
 
 }
