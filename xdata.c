@@ -183,11 +183,11 @@ PLUGIN_API void XPluginReceiveMessage(
 			sendAircraftPacket();
         }
     }
-	else
-	if( inMessage == XPLM_MSG_PLANE_CRASHED )
-	{
-		sendCrashedPacket();
-	}
+//	else
+//	if( inMessage == XPLM_MSG_PLANE_CRASHED )
+//	{
+//		sendCrashedPacket();
+//	}
 
 }
 
