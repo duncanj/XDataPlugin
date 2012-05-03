@@ -11,7 +11,7 @@ http://www.xsquawkbox.net/xpsdk/docs/DataRefs.html
 
 Status
 ======
-The project is currently in an early embryonic stage.  The plugin works and accepts requests for datarefs, then logs the dataref values to the X-Plane logfile - returning data is not implemented yet, but shouldn't take long once I have a few free evenings.
+This project is currently in it's early stages.  The plugin compiles and works (at least on Windows 7).  By 'works', I mean it accepts requests for datarefs, then sends data packets periodically (at the requested frequency) containing data from the simulator.
 
 
 Future plans
@@ -25,4 +25,5 @@ Write a java application that uses XData.
 
 Credits
 =======
-XData is heavily based on the source code from the XHSI project (http://xhsi.sourceforge.net/)
+XData is heavily based on the source code from the XHSI project (http://xhsi.sourceforge.net/).
+
