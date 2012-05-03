@@ -72,11 +72,12 @@ void sendRepositionedAtAirport() {
 	
 	sprintf(msg, "Repositioned at airport: %s (name: %s) height=%f lat=%f lon=%f\n", apt_id, apt_name, apt_height, apt_lat, apt_lon);
 	XPLMDebugString(msg);
-/*	
+	
 	// make endian corrections
-	apt_lat = custom_htonf(apt_lat);
-	apt_lon = custom_htonf(apt_lon);
-	apt_height = custom_htonf(apt_height);
+	// COMMENTED OUT - THIS CRASHES X-PLANE.  WHY?
+//	apt_lat = custom_htonf(apt_lat);
+//	apt_lon = custom_htonf(apt_lon);
+//	apt_height = custom_htonf(apt_height);
 	
 	strncpy(airport_packet.apt_id, apt_id, 32);
 	strncpy(airport_packet.apt_name, apt_name, 256);
@@ -108,7 +109,7 @@ void sendRepositionedAtAirport() {
 			}
 		}	
 	}
-*/	
+	
 }
 
 
