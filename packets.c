@@ -29,6 +29,7 @@ struct SimDataPacket     	sim_packet;
 struct AircraftDataPacket	acf_packet;
 struct CommandPacket    	efis_packet;
 struct RequestPacket		req_packet;
+struct AirportRepositionPacket  airport_packet;
 
 int max_packet_size = 0;
 char msg[200];

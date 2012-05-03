@@ -12,3 +12,4 @@ extern struct SimDataPacket     	sim_packet;
 extern struct AircraftDataPacket	acf_packet[10];
 extern struct CommandPacket    		efis_packet;
 extern struct RequestPacket    		req_packet;
+extern struct AirportRepositionPacket  airport_packet;

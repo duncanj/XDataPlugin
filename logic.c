@@ -8,6 +8,7 @@
 #include "XPLMUtilities.h"
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"
+#include "XPLMNavigation.h"
 
 #include "globals.h"
 #include "net.h"
@@ -22,8 +23,129 @@
 XPLMDataRef dataref_acf_desc;
 XPLMDataRef dataref_acf_tailnum;
 
-float situation_update_period = 1.0f;  // every second
+float situation_update_period = 0.1f;  // 10x per second
 
+
+
+void sendRepositionedAtAirport() {
+	XPLMDebugString("XData: sendRepositionedAtAirport called.\n");
+	
+	// where are we?
+	float inLat;
+	float inLon;
+	
+	XPLMDataRef dataref_latitude = XPLMFindDataRef("sim/flightmodel/position/latitude");
+	inLat = XPLMGetDataf(dataref_latitude);
+	
+	XPLMDataRef dataref_longitude = XPLMFindDataRef("sim/flightmodel/position/longitude");
+	inLon = XPLMGetDataf(dataref_longitude);
+	
+	
+	XPLMNavRef navref = XPLMFindNavAid(
+                                   NULL,
+                                   NULL,
+                                   &inLat,
+                                   &inLon,
+                                   NULL,
+                                   xplm_Nav_Airport);
+	
+	float apt_lat;
+	float apt_lon;
+	float apt_height;
+	char apt_id[32];
+	char apt_name[256];
+	
+	XPLMGetNavAidInfo( navref,
+					   NULL,
+					   &apt_lat,
+					   &apt_lon,
+					   &apt_height,
+					   NULL,
+					   NULL,
+					   &apt_id,
+					   &apt_name,
+					   NULL);
+					   
+	int i;
+	int res;	
+	char msg[256];
+	
+	sprintf(msg, "Repositioned at airport: %s (name: %s) height=%f lat=%f lon=%f\n", apt_id, apt_name, apt_height, apt_lat, apt_lon);
+	XPLMDebugString(msg);
+/*	
+	// make endian corrections
+	apt_lat = custom_htonf(apt_lat);
+	apt_lon = custom_htonf(apt_lon);
+	apt_height = custom_htonf(apt_height);
+	
+	strncpy(airport_packet.apt_id, apt_id, 32);
+	strncpy(airport_packet.apt_name, apt_name, 256);
+	airport_packet.apt_height = apt_height;
+	airport_packet.apt_lat = apt_lat;
+	airport_packet.apt_lon = apt_lon;
+	
+
+	
+	if (xdata_plugin_enabled && xdata_send_enabled && xdata_socket_open) {
+		strncpy(airport_packet.packet_id, "RAPT", 4);
+		for (i=0; i<NUM_DEST; i++) {
+			if (dest_enable[i]) {
+				res = sendto(sockfd, (const char*)&airport_packet, sizeof(airport_packet), 0, (struct sockaddr *)&dest_sockaddr[i], sizeof(struct sockaddr));
+#if IBM
+				if ( res == SOCKET_ERROR ) {
+					XPLMDebugString("XData: caught error while sending RAPT packet! (");
+                    sprintf(msg, "%d", WSAGetLastError());
+					XPLMDebugString(msg);
+					XPLMDebugString(")\n");
+				}
+#else
+				if ( res < 0 ) {
+					XPLMDebugString("XData: caught error while sending RAPT packet! (");
+					XPLMDebugString((char * const) strerror(GET_ERRNO));
+					XPLMDebugString(")\n");
+				}
+#endif
+			}
+		}	
+	}
+*/	
+}
+
+
+void sendCrashedPacket() {
+	XPLMDebugString("XData: sendCrashedPacket called.\n");
+
+	int i;
+	int res;
+#if IBM
+	char msg[80];
+#endif
+	
+	if (xdata_plugin_enabled && xdata_send_enabled && xdata_socket_open) {
+		char data[4];
+		strncpy(data, "CRSH", 4);
+
+		for (i=0; i<NUM_DEST; i++) {
+			if (dest_enable[i]) {
+				res = sendto(sockfd, (const char*)&data, 4, 0, (struct sockaddr *)&dest_sockaddr[i], sizeof(struct sockaddr));
+#if IBM
+				if ( res == SOCKET_ERROR ) {
+					XPLMDebugString("XData: caught error while sending CRSH packet! (");
+                    sprintf(msg, "%d", WSAGetLastError());
+					XPLMDebugString(msg);
+					XPLMDebugString(")\n");
+				}
+#else
+				if ( res < 0 ) {
+					XPLMDebugString("XData: caught error while sending CRSH packet! (");
+					XPLMDebugString((char * const) strerror(GET_ERRNO));
+					XPLMDebugString(")\n");
+				}
+#endif
+			}
+		}
+	}
+}
 
 
 

@@ -26,6 +26,15 @@ struct CommandPacket {
 	struct SimDataPoint command_points[100];
 };
 
+struct AirportRepositionPacket {
+	char packet_id[4];
+	char apt_id[32];
+	char apt_name[256];
+	float apt_height;
+	float apt_lat;
+	float apt_lon;	
+};
+
 struct RequestForDataref {
 	long 				ref_id;
 	float				frequency;
