@@ -3,8 +3,10 @@
 #if BYTE_ORDER == LITTLE_ENDIAN
 float custom_htonf(float x) {
 	float r;
-    unsigned char *s1 = (unsigned char *) &x;
-    unsigned char *s2 = (unsigned char *) &r;
+    //unsigned char *s1 = (unsigned char *) &x;
+    //unsigned char *s2 = (unsigned char *) &r;
+	char *s1 = (char *) &x;
+	char *s2 = (char *) &r;
     s2[0] = s1[3];
     s2[1] = s1[2];
     s2[2] = s1[1];

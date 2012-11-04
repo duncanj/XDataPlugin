@@ -352,9 +352,16 @@ float sendRequestedDataCallback(
 							response_index += 4;
 						} else
 						if( request_records[i].datatype == xplmType_Float ) {
-							int convertedFloat = custom_htonf(floatValue);
-							memcpy(response_data+response_index, &convertedFloat, 4);
+							// skipping endianness conversion of float too, similar problem to double?
+							//float convertedFloat = custom_htonf(floatValue);
+							memcpy(response_data+response_index, &floatValue, 4);
 							response_index += 4;
+							if( DEBUG ) {
+								sprintf(msg, "Converted a float: %f\n", floatValue);
+								XPLMDebugString(msg);
+								sprintf(msg, "%d %d %d %d\n", (int)response_data[response_index-4], (int)response_data[response_index-3], (int)response_data[response_index-2], (int)response_data[response_index-1]);
+								XPLMDebugString(msg);								
+							}							
 						} else
 						if( request_records[i].datatype == xplmType_Double || request_records[i].datatype == 6 ) {  // hack based on observed values
 						

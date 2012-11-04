@@ -15,7 +15,7 @@
 #define DEFAULT_DEST_PORT 49010
 #define DEFAULT_RECV_PORT 49009
 
-#define DEBUG 0
+#define DEBUG 1
 
 // config file name
 #if IBM
