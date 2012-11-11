@@ -25,6 +25,8 @@ XPLMDataRef dataref_acf_tailnum;
 
 float situation_update_period = 0.1f;  // 10x per second
 
+int acf_packet_requested = 0; 
+
 
 
 void sendRepositionedAtAirport() {
@@ -213,6 +215,11 @@ float sendRequestedDataCallback(
 	}
 
 	if (xdata_plugin_enabled && xdata_send_enabled && xdata_socket_open) {
+	
+		if( acf_packet_requested == 1 ) {			
+			acf_packet_requested = 0;
+			sendAircraftPacket();
+		}
 	
 		// Tried a number of things, but absolute current time in millis just overflows and isn't printable via sprintf, it seems, as a long long.
 		// So: initializing a start time, then evaluating time since that, which fits into an int.

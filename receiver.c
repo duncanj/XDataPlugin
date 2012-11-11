@@ -28,6 +28,7 @@
 #include "packets.h"
 #include "net.h"
 #include "receiver.h"
+#include "logic.h"
 
 
 float receiveCallback(
@@ -74,6 +75,10 @@ float receiveCallback(
 					memcpy(&efis_packet, data+4, sizeof(struct CommandPacket));
 					XPLMDebugString("XData: read CommandPacket\n");	
 					decodeCommandPacket();
+				} else
+				if( packet_type_id == (int) PACKET_TYPE_ACFT ) {
+					XPLMDebugString("XData: received ACFT packet\n");	
+					acf_packet_requested = 1;
 				} else {
 					sprintf(debug_message, "XData: received unknown packet type: %d\n", packet_type_id);
 					XPLMDebugString(debug_message);	
